@@ -1,57 +1,45 @@
-## 1. Integrantes
-
-| Nombre | ROL |
+| Integrante | ROL |
+|---|---|
 | Cristian Bravo Osorio | 202473595-0 |
-| Alex Barra Tapia      | 202473526-8 |
+| Alex Barra Tapia | 202473526-8 |
 
-**Repositorio GitHub:** https://github.com/CristianBvOs/T2_202473595-0_202473526-8
+**Repositorio:** https://github.com/CristianBvOs/T2_202473595-0_202473526-8
 
--------------
+Ejecución
 
-## 2. Instrucciones de ejecución
+1. Copiar la carpeta `T2_202473595-0_202473526-8` dentro de `xampp\htdocs`.
+2. Iniciar **Apache** y **MySQL** en el panel de XAMPP.
+3. En <http://localhost/phpmyadmin> → **Importar** → `BD/salud_usm.sql` → **Continuar**.
+   El script crea la base `salud_usm` desde cero y se puede reimportar las veces que sea
+   necesario. Por consola: `mysql -u root -p < BD/salud_usm.sql`
+4. Abrir <http://localhost/T2_202473595-0_202473526-8/PHP/login.php>
 
-Requisitos: **XAMPP 8.x** (PHP 8.0 o superior y MySQL/MariaDB).
+Si MySQL usa otro usuario o contraseña, editar las constantes de `PHP/conexion.php`.
 
-1. Copiar la carpeta completa `T2_202473595-0_202473526-8` dentro de `xampp\htdocs`.
-2. Abrir el panel de XAMPP e iniciar **Apache** y **MySQL**.
-3. Entrar a <http://localhost/phpmyadmin>, ir a la pestaña **Importar**, seleccionar el archivo
-`BD/salud_usm.sql` y presionar **Continuar**. El script crea la base de datos `salud_usm`
-desde cero (incluye `DROP DATABASE IF EXISTS`, por lo que se puede volver a importar las
-veces que sea necesario).
-- Alternativa por consola: `mysql -u root -p < BD/salud_usm.sql`
-4. Abrir <http://localhost/T2_202473595-0_202473526-8/PHP/login.php> e ingresar con alguno de los usuarios de
-prueba de la sección 4.
+Usuarios de prueba
 
-Si el servidor MySQL usa un usuario o una contraseña distintos de los de XAMPP por defecto
-(`root` sin contraseña), hay que editar las cuatro constantes del archivo `PHP/conexion.php`.
+| Rol | Usuario | Contraseña |
+|---|---|---|
+| Administrador | `admin@saludusm.cl` | `Admin123` |
+| Médico | `camila.rojas@saludusm.cl` | `Medico123` |
+| Paciente | `vicente.palma@correo.cl` | `Paciente123` |
 
-------------
+Supuestos
 
-## 3. Usuarios de prueba
-
-
-### Administrador 'admin@saludusm.cl' - contraseña 'Admin123'
-
-### Médicos  'martina.navarro@saludusm.cl' — contraseña 'Medico123'
-Los 15 médicos del sistema usan la misma contraseña.
-
-### Pacientes 'vicente.palma@correo.cl' — contraseña 'Paciente123'
-Los 40 pacientes del sistema usan la misma contraseña.
-
----------------
-
-## 4. Supuestos
-
-- **Duración de cada bloque: 30 minutos.**
-- **Horario de atención: lunes a viernes, de 09:00 a 18:00.**
-- Al agendar o reprogramar, el sistema ofrece solo los bloques que el médico tiene libres ese
-  día. Si la fecha elegida es hoy, además se descartan los bloques cuya hora ya pasó.
-- El paciente puede eliminar su cuenta desde *Mis datos*, confirmando su contraseña.
-- La eliminación es **física y en cascada**: se borra el usuario, su ficha de paciente,
-  **todas sus citas** (pasadas y futuras) y las **atenciones** asociadas a esas citas, junto
-  con los diagnósticos y las recetas de dichas atenciones.
-- Se puede iniciar sesión con el **RUT** o con el **correo electrónico**.
-- **Requisitos de contraseña:** mínimo 8 caracteres, al menos una letra mayúscula, al menos una
-  letra minúscula y al menos un número.
-- El sexo del paciente se registra como M (masculino), F (femenino) u O (otro).
-
+1. Bloques de **30 minutos**, de **lunes a viernes entre 09:00 y 18:00** (último bloque 17:30).
+   y no se consideran feriados.
+2. Las citas Reservadas o Confirmadas con fecha vencida pasan a Cancelada **en cada inicio de
+   sesión**, mediante `sp_cancelar_citas_vencidas()`.
+3. Una cita Cancelada o No Asistió **libera su bloque**, y por lo mismo **no se reactiva**: el
+   paciente debe agendar una hora nueva.
+4. El médico solo deja sus citas en Confirmada, Atendida o No Asistió, y no antes de la hora de
+   la cita.
+5. **Al eliminar su cuenta**, el paciente borra en cascada su ficha, todas sus citas y las
+   atenciones asociadas con sus diagnósticos y recetas.
+6. **No se puede quitar una especialidad o un centro a un médico con citas asociadas** (de
+   cualquier fecha y estado), ni eliminar un centro o un médico con citas, para no perder el
+   historial.
+7. Los diagnósticos salen de un catálogo compartido; el médico puede crear uno nuevo con su
+   código CIE-10 y descripción. Editar uno de la atención es reemplazarlo por otro.
+8. Las fechas de prueba se cuentan en días hábiles desde el lunes de la semana, asì que ninguna cae en el fin de semana
+9. **Contraseña:** mínimo 8 caracteres, con al menos una mayúscula, una minúscula y un número.

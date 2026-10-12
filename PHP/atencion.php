@@ -56,6 +56,39 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $st->execute([$id_atencion, (int)$_POST['id_diagnostico']]);
             flash('success', 'Diagnóstico agregado a la atención.');
 
+        } elseif ($accion === 'crear_diagnostico') {
+
+            $codigo = strtoupper(trim($_POST['codigo_cie10'] ?? ''));
+            $descripcion = trim($_POST['descripcion'] ?? '');
+
+            if ($codigo === '' || $descripcion === '') {
+                flash('danger', 'Para crear un diagnóstico debe indicar el código CIE-10 y la descripción.');
+            } else {
+                $st = $pdo->prepare('SELECT id_diagnostico FROM diagnostico WHERE codigo_cie10 = ?');
+                $st->execute([$codigo]);
+                $existente = $st->fetchColumn();
+
+                if ($existente) {
+                    flash('warning', 'El código ' . $codigo . ' ya existe en el catálogo; '
+                                   . 'se asoció ese diagnóstico a la atención.');
+                    $st = $pdo->prepare('INSERT INTO atencion_diagnostico (id_atencion, id_diagnostico)
+                                         VALUES (?, ?)');
+                    $st->execute([$id_atencion, $existente]);
+                } else {
+                    $pdo->beginTransaction();
+                    $st = $pdo->prepare('INSERT INTO diagnostico (codigo_cie10, descripcion)
+                                         VALUES (?, ?)');
+                    $st->execute([$codigo, $descripcion]);
+                    $nuevo = (int)$pdo->lastInsertId();
+
+                    $st = $pdo->prepare('INSERT INTO atencion_diagnostico (id_atencion, id_diagnostico)
+                                         VALUES (?, ?)');
+                    $st->execute([$id_atencion, $nuevo]);
+                    $pdo->commit();
+                    flash('success', 'Diagnóstico ' . $codigo . ' creado y agregado a la atención.');
+                }
+            }
+
         } elseif ($accion === 'editar_diagnostico') {
 
             $st = $pdo->prepare('UPDATE atencion_diagnostico
@@ -206,6 +239,26 @@ require 'cabecera.php';
                 </div>
                 <div class="col-md-3 d-grid">
                     <button class="btn btn-salud" type="submit">Agregar diagnóstico</button>
+                </div>
+            </form>
+            <form method="post" action="atencion.php" class="row g-2 mb-3">
+                <input type="hidden" name="id_cita" value="<?= (int)$id_cita ?>">
+                <input type="hidden" name="accion" value="crear_diagnostico">
+                <div class="col-md-3">
+                    <input type="text" class="form-control" name="codigo_cie10"
+                           placeholder="Código CIE-10 (ej: R50)" maxlength="10" required>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control" name="descripcion"
+                           placeholder="Descripción del diagnóstico" maxlength="120" required>
+                </div>
+                <div class="col-md-3 d-grid">
+                    <button class="btn btn-outline-primary" type="submit">Crear y agregar</button>
+                </div>
+                <div class="col-12">
+                    <span class="form-text">
+                        Use este formulario solo si el diagnóstico no aparece en el catálogo.
+                    </span>
                 </div>
             </form>
 

@@ -211,6 +211,15 @@ function es_fin_de_semana($fecha)
     return $dia >= 6;
 }
 
+function dia_habil_actual()
+{
+    $fecha = date('Y-m-d');
+    while (es_fin_de_semana($fecha)) {
+        $fecha = date('Y-m-d', strtotime($fecha . ' +1 day'));
+    }
+    return $fecha;
+}
+
 function color_estado($estado)
 {
     switch ($estado) {

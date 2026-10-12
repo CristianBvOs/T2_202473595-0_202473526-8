@@ -138,15 +138,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total = (int)$st->fetchColumn();
 
             $st = $pdo->prepare('SELECT COUNT(*) FROM cita
-                                 WHERE rut_medico = ? AND id_especialidad = ? AND fecha >= CURDATE()');
+                                 WHERE rut_medico = ? AND id_especialidad = ?');
             $st->execute([$rut_editar, $id]);
-            $futuras = (int)$st->fetchColumn();
+            $asociadas = (int)$st->fetchColumn();
 
             if ($total <= 1) {
                 flash('warning', 'El médico debe conservar al menos una especialidad.');
-            } elseif ($futuras > 0) {
-                flash('warning', 'No se puede quitar la especialidad: el médico tiene citas futuras '
-                               . 'agendadas en ella. Primero debe reprogramarlas o cancelarlas.');
+            } elseif ($asociadas > 0) {
+                flash('warning', 'No se puede quitar la especialidad: el médico tiene ' . $asociadas
+                               . ' cita(s) registradas en ella. Quitarla dejaría esas citas sin '
+                               . 'respaldo en el historial clínico.');
             } else {
                 $st = $pdo->prepare('DELETE FROM medico_especialidad
                                      WHERE rut_medico = ? AND id_especialidad = ?');
@@ -169,15 +170,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $total = (int)$st->fetchColumn();
 
             $st = $pdo->prepare('SELECT COUNT(*) FROM cita
-                                 WHERE rut_medico = ? AND id_centro = ? AND fecha >= CURDATE()');
+                                 WHERE rut_medico = ? AND id_centro = ?');
             $st->execute([$rut_editar, $id]);
-            $futuras = (int)$st->fetchColumn();
+            $asociadas = (int)$st->fetchColumn();
 
             if ($total <= 1) {
                 flash('warning', 'El médico debe atender al menos en un centro.');
-            } elseif ($futuras > 0) {
-                flash('warning', 'No se puede quitar el centro: el médico tiene citas futuras '
-                               . 'agendadas allí. Primero debe reprogramarlas o cancelarlas.');
+            } elseif ($asociadas > 0) {
+                flash('warning', 'No se puede quitar el centro: el médico tiene ' . $asociadas
+                               . ' cita(s) registradas allí. Quitarlo dejaría esas citas sin '
+                               . 'respaldo en el historial clínico.');
             } else {
                 $st = $pdo->prepare('DELETE FROM medico_centro WHERE rut_medico = ? AND id_centro = ?');
                 $st->execute([$rut_editar, $id]);
@@ -236,8 +238,12 @@ $medicos = $pdo->query("SELECT u.rut, u.nombre, u.email,
                                   FROM medico_centro mc
                                   JOIN centro_medico c ON c.id_centro = mc.id_centro
                                  WHERE mc.rut_medico = m.rut) AS centros,
-                               (SELECT COUNT(*) FROM cita ci
-                                 WHERE ci.rut_medico = m.rut AND ci.fecha >= CURDATE()) AS citas_futuras
+                               (SELECT COUNT(*)
+                                  FROM cita ci
+                                  JOIN estado_cita e ON e.id_estado = ci.id_estado
+                                 WHERE ci.rut_medico = m.rut
+                                   AND ci.fecha >= CURDATE()
+                                   AND e.nombre IN ('Reservada','Confirmada')) AS citas_futuras
                         FROM   medico  m
                         JOIN   usuario u ON u.rut = m.rut
                         ORDER BY u.nombre")->fetchAll();

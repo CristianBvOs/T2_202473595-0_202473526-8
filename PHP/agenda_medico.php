@@ -3,13 +3,13 @@ require_once 'funciones.php';
 requiere_rol([ROL_MEDICO]);
 
 $titulo = 'Mi agenda';
-$dia = trim($_GET['dia'] ?? $_POST['dia'] ?? date('Y-m-d'));
+$dia = trim($_GET['dia'] ?? $_POST['dia'] ?? dia_habil_actual());
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'estado') {
     $id_cita   = (int)($_POST['id_cita'] ?? 0);
     $id_estado = (int)($_POST['id_estado'] ?? 0);
 
-    $st = $pdo->prepare('SELECT v.id_cita, v.estado, v.id_atencion
+    $st = $pdo->prepare('SELECT v.id_cita, v.estado, v.id_atencion, v.fecha, v.hora_inicio
                          FROM   vw_cita_detalle v
                          WHERE  v.id_cita = ? AND v.rut_medico = ?');
     $st->execute([$id_cita, rut_actual()]);
@@ -19,10 +19,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['accion'] ?? '') === 'estad
     $st->execute([$id_estado]);
     $nuevo = $st->fetchColumn();
 
+    $ya_paso = $cita
+        && ($cita['fecha'] < date('Y-m-d')
+            || ($cita['fecha'] === date('Y-m-d') && $cita['hora_inicio'] <= date('H:i:s')));
+
     if (!$cita) {
         flash('danger', 'La cita indicada no existe o no corresponde a su agenda.');
     } elseif (!in_array($nuevo, ['Confirmada', 'Atendida', 'No Asistió'], true)) {
         flash('danger', 'El médico solo puede dejar la cita en Confirmada, Atendida o No Asistió.');
+    } elseif ($cita['estado'] === 'Cancelada') {
+        flash('warning', 'La cita está cancelada y no puede reactivarse desde la agenda. '
+                       . 'El paciente debe agendar una hora nueva.');
+    } elseif (in_array($nuevo, ['Atendida', 'No Asistió'], true) && !$ya_paso) {
+        flash('warning', 'Todavía no puede marcar la cita como ' . $nuevo
+                       . ': su hora aún no llega.');
     } elseif ($cita['id_atencion'] && $nuevo !== 'Atendida') {
 
         flash('warning', 'La cita ya tiene una atención registrada: elimine primero la atención '
@@ -98,20 +108,25 @@ require 'cabecera.php';
                 <td><?= h($c['centro']) ?></td>
                 <td><span class="badge bg-<?= color_estado($c['estado']) ?>"><?= h($c['estado']) ?></span></td>
                 <td class="text-end">
-                    <form method="post" action="agenda_medico.php" class="d-inline-flex gap-1">
-                        <input type="hidden" name="accion" value="estado">
-                        <input type="hidden" name="id_cita" value="<?= (int)$c['id_cita'] ?>">
-                        <input type="hidden" name="dia" value="<?= h($dia) ?>">
-                        <select name="id_estado" class="form-select form-select-sm w-auto">
-                            <?php foreach ($estados as $e): ?>
-                                <option value="<?= (int)$e['id_estado'] ?>"
-                                    <?= $c['id_estado'] == $e['id_estado'] ? 'selected' : '' ?>>
-                                    <?= h($e['nombre']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                        <button class="btn btn-sm btn-outline-primary" type="submit">Actualizar</button>
-                    </form>
+                    <?php if ($c['estado'] === 'Cancelada'): ?>
+
+                        <span class="text-muted small">Cita cancelada</span>
+                    <?php else: ?>
+                        <form method="post" action="agenda_medico.php" class="d-inline-flex gap-1">
+                            <input type="hidden" name="accion" value="estado">
+                            <input type="hidden" name="id_cita" value="<?= (int)$c['id_cita'] ?>">
+                            <input type="hidden" name="dia" value="<?= h($dia) ?>">
+                            <select name="id_estado" class="form-select form-select-sm w-auto">
+                                <?php foreach ($estados as $e): ?>
+                                    <option value="<?= (int)$e['id_estado'] ?>"
+                                        <?= $c['id_estado'] == $e['id_estado'] ? 'selected' : '' ?>>
+                                        <?= h($e['nombre']) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                            <button class="btn btn-sm btn-outline-primary" type="submit">Actualizar</button>
+                        </form>
+                    <?php endif; ?>
                     <?php if ($c['estado'] === 'Atendida'): ?>
                         <a class="btn btn-sm btn-salud" href="atencion.php?id_cita=<?= (int)$c['id_cita'] ?>">
                             <?= $c['id_atencion'] ? 'Editar atención' : 'Registrar atención' ?>
