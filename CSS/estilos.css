@@ -1,0 +1,65 @@
+:root {
+    --salud-azul: #0b6e8a;
+    --salud-azul-oscuro: #075769;
+    --salud-fondo: #f4f7f9;
+}
+
+body {
+    background-color: var(--salud-fondo);
+}
+
+.bg-salud {
+    background-color: var(--salud-azul) !important;
+}
+
+.btn-salud {
+    background-color: var(--salud-azul);
+    border-color: var(--salud-azul);
+    color: #fff;
+}
+
+.btn-salud:hover,
+.btn-salud:focus {
+    background-color: var(--salud-azul-oscuro);
+    border-color: var(--salud-azul-oscuro);
+    color: #fff;
+}
+
+.cruz {
+    color: #8ad4e8;
+    font-weight: 700;
+}
+
+.bloque-portada {
+    background: #fff;
+    border: 1px solid #e3e9ee;
+}
+
+.pagina-acceso {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    background: linear-gradient(140deg, var(--salud-azul) 0%, var(--salud-azul-oscuro) 100%);
+}
+
+.tarjeta-acceso {
+    border: none;
+    border-radius: 12px;
+}
+
+.bloque-horario {
+    min-width: 86px;
+    font-variant-numeric: tabular-nums;
+}
+
+.table > :not(caption) > * > * {
+    vertical-align: middle;
+}
+
+.card {
+    border: 1px solid #e3e9ee;
+}
+
+footer {
+    background-color: #fff;
+}
